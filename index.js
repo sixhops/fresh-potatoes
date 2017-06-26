@@ -1,10 +1,12 @@
-const sqlite = require('sqlite'),
+const sqlite3 = require('sqlite3'),
       Sequelize = require('sequelize'),
       request = require('request'),
       express = require('express'),
       app = express();
 
 const url = require('url');
+
+const db = new sqlite3.Database("./db/database.db");
 
 const { PORT=3000, NODE_ENV='development', DB_PATH='./db/database.db' } = process.env;
 
@@ -24,6 +26,14 @@ function getFilmRecommendations(req, res) {
   var offset = parsedQuery.offset;
   var limit = parsedQuery.limit;
 
+  // Query the database for the parent film
+  var genreId = 0;
+  var releaseDate = '';
+  db.get("SELECT id, release_date, genre_id FROM films WHERE id=?", [parentId], function(err, row) {
+    genreId = row.genre_id;
+    releaseDate = row.release_date;
+    
+  });
   
   //res.status(500).send('Not Implemented');
 }
