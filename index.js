@@ -38,7 +38,22 @@ function getFilmRecommendations(req, res) {
     var latestDate = releaseArray.join('-');
     releaseArray[0] = parseInt(releaseArray[0]) - 30;
     var earliestDate = releaseArray.join('-');
-
+    // Query the database for the recommendations
+    var queryString = `
+      SELECT films.id, films.title, films.release_date, genres.name
+        FROM films JOIN genres ON films.genre_id = genres.id
+      WHERE films.genre_id = ?
+        AND films.release_date > ?
+        AND films.release_date < ?
+    `;
+    var reviewApi = 'http://credentials-api.generalassemb.ly/4576f55f-c427-4cfc-a11c-5bfe914ca6c1';
+    var body = '';              // a body to hold the API response
+    var reviews = {};           // an object to hold the resulting JSON object
+    var numReviews = 0;         // a counter for reviews (for readability)
+    var averageRating = 0;      // a variable for average rating
+    var recommendation = {};    // an object to hold the created recommendation
+    var recommendations = [];   // an array of recommendation objects
+    
   });
 
   //res.status(500).send('Not Implemented');
