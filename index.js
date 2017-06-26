@@ -32,9 +32,15 @@ function getFilmRecommendations(req, res) {
   db.get("SELECT id, release_date, genre_id FROM films WHERE id=?", [parentId], function(err, row) {
     genreId = row.genre_id;
     releaseDate = row.release_date;
-    
+    // Calculate date range variables
+    var releaseArray = releaseDate.split('-');
+    releaseArray[0] = parseInt(releaseArray[0]) + 15;
+    var latestDate = releaseArray.join('-');
+    releaseArray[0] = parseInt(releaseArray[0]) - 30;
+    var earliestDate = releaseArray.join('-');
+
   });
-  
+
   //res.status(500).send('Not Implemented');
 }
 
