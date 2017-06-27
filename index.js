@@ -46,6 +46,7 @@ function getFilmRecommendations(req, res) {
       WHERE films.genre_id = ?
         AND films.release_date > ?
         AND films.release_date < ?
+        AND films.id <> ?
         ORDER BY films.id ASC
     `;
     var recommendationIds = []; // an array for the recommended film ids
@@ -79,7 +80,29 @@ function getFilmRecommendations(req, res) {
           recReviews = JSON.parse(body);
           // Now that we have reviews for each recommendation we can loop
           //  thru them finding the rating info.
-
+          for (let i = 0; i < recReviews.length; i++) {
+            // Get number of reviews and average rating from the results
+            numReviews = recReviews[i].reviews.length;
+            if (numReviews >= 5) { // first qualifier
+              averageRating = 0;
+              for (let j = 0; j < numReviews; j++) {
+                averageRating += recReviews[i].reviews[j].rating;
+              }
+              averageRating = parseFloat((averageRating / numReviews).toFixed(2));
+              if (averageRating > 4.0) { // second qualifier
+                // If we pass the qualifiers, we will make a new object and push it
+                recommendation = {
+                  id: rows[i].id,
+                  title: rows[i].title,
+                  releaseDate: rows[i].release_date,
+                  genre: rows[i].name,
+                  averageRating: averageRating,
+                  reviews: numReviews
+                };
+                recommendations.push(recommendation);
+              }
+            }
+          }
 
         }); // end response on 'end' callback
  
