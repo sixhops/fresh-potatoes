@@ -46,17 +46,29 @@ function getFilmRecommendations(req, res) {
       WHERE films.genre_id = ?
         AND films.release_date > ?
         AND films.release_date < ?
+        ORDER BY films.id ASC
     `;
-    var reviewApi = 'http://credentials-api.generalassemb.ly/4576f55f-c427-4cfc-a11c-5bfe914ca6c1?films=' + parentId;
+    var recommendationIds = []; // an array for the recommended film ids
+    var reviewApi = '';         // variable to let us build the api url
     var body = '';              // a body to hold the API response
-    var reviews = {};           // an object to hold the resulting JSON object
+    var recReviews = [];           // an object to hold the resulting JSON object
     var numReviews = 0;         // a counter for reviews (for readability)
     var averageRating = 0;      // a variable for average rating
     var recommendation = {};    // an object to hold the created recommendation
     var recommendations = [];   // an array of recommendation objects
     // Query the database for the recommendations
-    db.each(queryString, [genreId, earliestDate, latestDate], function(err, row) {
-      // Execute the following for each recommended film returned
+    db.all(queryString, [genreId, earliestDate, latestDate], function(err, rows) {
+      // Push each film into the array
+      for (let i = 0; i < rows.length; i++) {
+        recommendationIds.push(rows[i].id);
+      }
+
+      var filmIdsQuery = '';
+      for (let i = 0; i < recommendationIds.length; i++) {
+        filmIdsQuery += recommendationIds[i].toString() + ',';
+      }
+      reviewApi = 'http://credentials-api.generalassemb.ly/4576f55f-c427-4cfc-a11c-5bfe914ca6c1?films=' + filmIdsQuery;
+
       // Query the API for reviews about this film recommendation
       http.get(reviewApi, function(res) {
         body = '';
@@ -64,21 +76,21 @@ function getFilmRecommendations(req, res) {
           body += chunk;
         });
         res.on('end', function() {
-          // The object containing the filmID and the results array should be in index 0
-          reviews = JSON.parse(body)[0];
-        });
-
-        
+          recReviews = JSON.parse(body);
+          // Now that we have reviews for each recommendation we can loop
+          //  thru them finding the rating info.
 
 
+        }); // end response on 'end' callback
+ 
 
       }).on('error', function(e){
         console.log("Got an error: ", e);
       });
 
-    });
+    }); // end second db callback
 
-  });
+  }); // end first db callback
 
   //res.status(500).send('Not Implemented');
 }
