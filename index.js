@@ -11,6 +11,7 @@ const db = new sqlite3.Database("./db/database.db");
 
 const { PORT=3000, NODE_ENV='development', DB_PATH='./db/database.db' } = process.env;
 
+// Function for responding to requests with error codes
 function sendError(key, code, response) {
   response.statusCode = code;
   response.setHeader('Content-Type', 'application/json');
@@ -35,7 +36,7 @@ Promise.resolve()
 app.get('/films/:id/recommendations', getFilmRecommendations);
 // Handler for bad routes
 app.get('*', function(req, res) {
-  sendError("route", 404, res);
+  sendError('route', 404, res);
 });
 
 // ROUTE HANDLER
@@ -48,6 +49,7 @@ function getFilmRecommendations(request, response) {
 
   var parsedQuery = url.parse(request.url, true).query;
 
+  // Retrieve and validate offset
   var offset = parsedQuery.offset;
   if (typeof(offset) == 'undefined') {
     offset = 0;
@@ -57,6 +59,7 @@ function getFilmRecommendations(request, response) {
     }
   }
 
+  // Retrieve and validate limit
   var limit = parsedQuery.limit;
   if (typeof(limit) == 'undefined') {
     limit = 10;
@@ -78,6 +81,7 @@ function getFilmRecommendations(request, response) {
     var latestDate = releaseArray.join('-');
     releaseArray[0] = parseInt(releaseArray[0]) - 30;
     var earliestDate = releaseArray.join('-');
+
     // Set up the variables for the next db and api call
     var queryString = `
       SELECT films.id, films.title, films.release_date, genres.name
@@ -91,18 +95,20 @@ function getFilmRecommendations(request, response) {
     var recommendationIds = []; // an array for the recommended film ids
     var reviewApi = '';         // variable to let us build the api url
     var body = '';              // a body to hold the API response
-    var recReviews = [];           // an object to hold the resulting JSON object
+    var recReviews = [];        // an object to hold the resulting JSON object
     var numReviews = 0;         // a counter for reviews (for readability)
     var averageRating = 0;      // a variable for average rating
     var recommendation = {};    // an object to hold the created recommendation
     var recommendations = [];   // an array of recommendation objects
+
     // Query the database for the recommendations
-    db.all(queryString, [genreId, earliestDate, latestDate], function(err, rows) {
+    db.all(queryString, [genreId, earliestDate, latestDate, parentId], function(err, rows) {
       // Push each film into the array
       for (let i = 0; i < rows.length; i++) {
         recommendationIds.push(rows[i].id);
       }
 
+      // Build the API request string
       var filmIdsQuery = '';
       for (let i = 0; i < recommendationIds.length; i++) {
         filmIdsQuery += recommendationIds[i].toString() + ',';
@@ -115,10 +121,10 @@ function getFilmRecommendations(request, response) {
         resApi.on('data', function(chunk) {
           body += chunk;
         });
+
         resApi.on('end', function() {
           recReviews = JSON.parse(body);
-          // Now that we have reviews for each recommendation we can loop
-          //  thru them finding the rating info.
+          // Loop through to get rating info and build the object
           for (let i = 0; i < recReviews.length; i++) {
             // Get number of reviews and average rating from the results
             numReviews = recReviews[i].reviews.length;
@@ -148,6 +154,9 @@ function getFilmRecommendations(request, response) {
             return a.id - b.id;
           });
 
+          // Apply offset and limit for pagination
+          recommendations = recommendations.slice(offset, offset+limit);
+
           var fullResponse = {
             recommendations: recommendations,
             meta: {limit: limit, offset: offset}
@@ -160,16 +169,14 @@ function getFilmRecommendations(request, response) {
 
         }); // end response on 'end' callback
  
-
       }).on('error', function(e){
-        console.log("Got an error: ", e);
+        console.log("Got an API error: ", e);
       });
 
     }); // end second db callback
 
   }); // end first db callback
 
-  //res.status(500).send('Not Implemented');
 }
 
 module.exports = app;
