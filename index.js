@@ -20,10 +20,10 @@ Promise.resolve()
 app.get('/films/:id/recommendations', getFilmRecommendations);
 
 // ROUTE HANDLER
-function getFilmRecommendations(req, res) {
+function getFilmRecommendations(request, response) {
   // Retrieve the params from the url
-  var parentId = req.params.id;
-  var parsedQuery = url.parse(req.url, true).query;
+  var parentId = request.params.id;
+  var parsedQuery = url.parse(request.url, true).query;
   var offset = parsedQuery.offset;
   var limit = parsedQuery.limit;
 
@@ -71,12 +71,12 @@ function getFilmRecommendations(req, res) {
       reviewApi = 'http://credentials-api.generalassemb.ly/4576f55f-c427-4cfc-a11c-5bfe914ca6c1?films=' + filmIdsQuery;
 
       // Query the API for reviews about this film recommendation
-      http.get(reviewApi, function(res) {
+      http.get(reviewApi, function(resApi) {
         body = '';
-        res.on('data', function(chunk) {
+        resApi.on('data', function(chunk) {
           body += chunk;
         });
-        res.on('end', function() {
+        resApi.on('end', function() {
           recReviews = JSON.parse(body);
           // Now that we have reviews for each recommendation we can loop
           //  thru them finding the rating info.
