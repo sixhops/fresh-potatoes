@@ -11,6 +11,21 @@ const db = new sqlite3.Database("./db/database.db");
 
 const { PORT=3000, NODE_ENV='development', DB_PATH='./db/database.db' } = process.env;
 
+function sendError(key, code, response) {
+  response.statusCode = code;
+  response.setHeader('Content-Type', 'application/json');
+  let error = {};
+  switch (code) {
+    case 404:
+      error = { message: "Error: Route does not exist. Please use the form /films/12345/recommendations" };
+      break;
+    case 422:
+      error = { message: "Error: " + key + " is invalid. Please use only positive integers as values." };
+      break;
+  }
+  response.end( JSON.stringify(error) );
+}
+
 // START SERVER
 Promise.resolve()
   .then(() => app.listen(PORT, () => console.log(`App listening on port ${PORT}`)))
@@ -18,14 +33,38 @@ Promise.resolve()
 
 // ROUTES
 app.get('/films/:id/recommendations', getFilmRecommendations);
+// Handler for bad routes
+app.get('*', function(req, res) {
+  sendError("route", 404, res);
+});
 
 // ROUTE HANDLER
 function getFilmRecommendations(request, response) {
   // Retrieve the params from the url
   var parentId = request.params.id;
+  if ( isNaN(parseInt(parentId)) ) {
+    sendError('id', 422, response);
+  }
+
   var parsedQuery = url.parse(request.url, true).query;
+
   var offset = parsedQuery.offset;
+  if (typeof(offset) == 'undefined') {
+    offset = 0;
+  } else {
+    if ( isNaN(parseInt(offset)) ) {
+      sendError('offset', 422, response);
+    }
+  }
+
   var limit = parsedQuery.limit;
+  if (typeof(limit) == 'undefined') {
+    limit = 10;
+  } else {
+    if ( isNaN(parseInt(limit)) ) {
+      sendError('limit', 422, response);
+    }
+  }
 
   // Query the database for the parent film
   var genreId = 0;
