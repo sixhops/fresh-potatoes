@@ -103,6 +103,16 @@ function getFilmRecommendations(req, res) {
               }
             }
           }
+          // Prepare the return object
+          // First we sort the recommendations array by id ascending
+          recommendations.sort(function(a, b) {
+            return a.id - b.id;
+          });
+
+          var fullResponse = {
+            recommendations: recommendations,
+            meta: {limit: limit, offset: offset}
+          };
 
         }); // end response on 'end' callback
  
